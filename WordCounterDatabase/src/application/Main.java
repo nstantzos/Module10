@@ -10,12 +10,14 @@ import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -36,15 +38,32 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.VBox;
 
 
-
+/**
+ * The purpose of this program is to read in text from a website that contains 
+ * the poem "The Raven" by Edgar Allan Poe and count the number of occurrences 
+ * of each word. The user will be presented with a main window in which they 
+ * can enter a word into a text box and be given the frequency count of that 
+ * word within "The Raven". The user can also click a button that will display 
+ * a bar chart with the top 20 most frequently occurring words. The full 
+ * frequency results are also displayed in the console window.
+ * @author NickS
+ * @version 5.0.0
+ *
+ */
 public class Main extends Application 
 {
 	// Declare global Map for use in the start method
 	static Map<String, Integer> sortedWords;
+	// Declare global ArrayList to store data collected from database
+	static ArrayList<FetchedWords> fetchedWords;
 	
 	// Global flag to be accessed by multiple methods
 	public boolean wordWasFound;
 	
+	/**
+	 * Method to handle all JavaFX GUI implementation. Contains calls to methods 
+	 * that will build the main window and bar chart.
+	 */
 	@Override
 	public void start(Stage primaryStage) 
 	{
@@ -127,23 +146,12 @@ public class Main extends Application
 				primaryStage.setScene(scene);
 				primaryStage.setTitle("The Raven Word Count Statistics");
 				primaryStage.show();
-		
-		
-//		try 
-//		{
-//			BorderPane root = new BorderPane();
-//			Scene scene = new Scene(root,400,400);
-//			scene.getStylesheets().add(getClass().getResource("application.css").toExternalForm());
-//			primaryStage.setScene(scene);
-//			primaryStage.show();
-//		} 
-//		catch(Exception e) 
-//		{
-//			e.printStackTrace();
-//		}
 	}
 	
-	// Method for constructing the bar chart to be displayed after the user clicks a button
+	/**
+	 * Method for constructing the bar chart to be displayed after the user clicks a button
+	 * @return Returns a scene containing a formatted bar chart.
+	 */
 	private Scene BarChartConfiguration() 
 	{
 		// Create axes
@@ -178,63 +186,27 @@ public class Main extends Application
 	}
 	
 
-	
 	public static void main(String[] args) throws MalformedURLException, IOException 
 	{
-		System.out.println("I'm main 2");
-		
-		//Initialize person objects
-        Person person = new Person("Rick","Springfield", 70, 11111111,123456789);
-        Person person1 = new Person("Bob", "Dole", 93, 22222222,123456780);
-        Person person2 = new Person("Eric", "Clapton", 78, 33333333,123456781);
-        Person person3 = new Person("Danny", "Devito", 71, 44444444,1234567892);
-        Person person4 = new Person("Billy", "Joel", 70, 55555555,1234567893);
-        Person person5 = new Person("David", "Donnington", 22, 66666666,1234567894);
-
         //Create table within database
-        //Insertion of multiple person objects into the database
         CreateTable();
-        //Call method to insert person objects into table inside of database
-        InsertPerson(person);
-        InsertPerson(person1);
-        InsertPerson(person2);
-        InsertPerson(person3);
-        InsertPerson(person4);
-        InsertPerson(person5);
-
-        //Call method to select person with ID of 4 (the 4th row in the database)
-        System.out.println(SelectPerson(4));
         
-        //Loop through all people in the person array list FindAllPeople method
-        for(Person p: FindAllPeople())
-        {
-            System.out.println(p);
-        }
-        
-        //Delete Danny Devito from the table
-        DeletePerson("Danny", "Devito");
-
-        //Print out table again after row has been deleted to prove that row was deleted
-        for(Person p: FindAllPeople())
-        {
-            System.out.println(p);
-        }
-		
 		// Call method to read in URL object and parse text into a dictionary/hash map
 		Map<String, Integer> counterMap = ParseText();
 		
 		// Call method to sort the dictionary into descending frequency of word usage
 	    sortedWords = SortDictionary(counterMap);
-	 	
-	    //TODO: Add class creation for DatabaseEntry and pass the map to it
-	    //PassMap();
-	    //DatabaseEntry enterWordsIntoDB = new DatabaseEntry();
-	    //enterWordsIntoDB.CreateTable();
-	    //DatabaseEntry.main(args);
+	 		    
+        // Call method to insert words into the database
+        InsertWords(sortedWords);
+        
+        //Loop through all people in the person array list FindAllPeople method
+        fetchedWords = RetrieveWordsFromDatabase();
 	    
 	    // Print the sorted dictionary contents to the console window
 	    PrintDictionaryToConsole(sortedWords);	
         
+	    // Launch GUI portion of code
 		launch(args);
 	}
 	
@@ -560,8 +532,6 @@ public class Main extends Application
 						+ "Please make sure the word you typed is punctually correct.");
 				return false;
 			}
-		
-		
 		}
 		catch (Exception e)
 		{
@@ -570,72 +540,83 @@ public class Main extends Application
 		}
 	}
 	
-	//Method for deleting person from the table based on the last name
-    public static Connection DeletePerson(String firstName, String lastName)
+//	//Method for deleting person from the table based on the last name
+//    public static Connection DeletePerson(String firstName, String lastName)
+//    {
+//    	//Initialize connection and statement to null
+//        Connection connection = null;
+//        Statement statement = null;
+//
+//        try 
+//        {
+//            connection = GetConnection();
+//            connection.setAutoCommit(false);
+//
+//            //Create and execute SQL statement
+//            statement = connection.createStatement();
+//            //SQL statement to delete specific rows of people based on last name
+//            String sql = "DELETE from PersonalData where FIRSTNAME='" + firstName + "' AND LASTNAME='" + lastName + "';";
+//            statement.executeUpdate(sql);
+//            connection.commit();
+//            connection.close();
+//
+//            System.out.println(firstName + " " + lastName + " was deleted :(");
+//        } 
+//        catch ( Exception e ) 
+//        {
+//            System.out.println(e);
+//            //System.out.println("I entered the delete person catch block");
+//            connection = null;
+//        }
+//        return connection;
+//    }
+
+	/**
+	 * Method that fetches words from the database and stores them in an ArrayList of type FetchedWords
+	 * @return Returns an ArrayList object of type FetchedWords. 
+	 */
+    public static ArrayList<FetchedWords> RetrieveWordsFromDatabase()
     {
-    	//Initialize connection and statement to null
         Connection connection = null;
         Statement statement = null;
+        //Make an array list full of FetchedWords objects
+        ArrayList<FetchedWords> fetchedWords = new ArrayList<>();
 
         try 
         {
+        	// Initialize connection and SQL statement
             connection = GetConnection();
             connection.setAutoCommit(false);
-
-            //Create and execute SQL statement
             statement = connection.createStatement();
-            //SQL statement to delete specific rows of people based on last name
-            String sql = "DELETE from PersonalData where FIRSTNAME='" + firstName + "' AND LASTNAME='" + lastName + "';";
-            statement.executeUpdate(sql);
-            connection.commit();
-            connection.close();
-
-            System.out.println(firstName + " " + lastName + " was deleted :(");
-        } 
-        catch ( Exception e ) 
-        {
-            System.out.println(e);
-            //System.out.println("I entered the delete person catch block");
-            connection = null;
-        }
-        return connection;
-
-
-    }
-
-    //Method that selects all rows in the table and returns them as a person object
-    public static ArrayList<Person> FindAllPeople()
-    {
-        Connection connection = null;
-        Statement statement = null;
-        //Make an array list full of person objects
-        ArrayList<Person> person = new ArrayList<>();
-
-        try 
-        {
-            connection = GetConnection();
-            connection.setAutoCommit(false);
-
-            statement = connection.createStatement();
-            //Query all rows of data from person table
-            ResultSet rs = statement.executeQuery("SELECT * FROM PersonalData;");
-            while ( rs.next() ) 
+            
+            //Query all rows of data from words table
+            ResultSet words = statement.executeQuery("SELECT * FROM words");
+            System.out.println("Result set size is: " + words.getFetchSize());
+            
+            while ( words.next())
             {
-            	//Add each row to person array list
-                person.add(new Person(rs.getString("firstname"), rs.getString("lastname"), rs.getInt("age"), rs.getInt("creditcard"),rs.getInt("ssn")));
+            	// Add each word to the words array list
+            	fetchedWords.add(new FetchedWords(words.getInt("ID"), words.getString("WORD"), words.getInt("FREQUENCY")));
             }
-            rs.close();
+
+            System.out.println("SIZE IS: " + fetchedWords.size());
+            words.close();
             statement.close();
             connection.close();
-
-            System.out.println("Find all people was done.");
         } 
         catch ( Exception e ) 
         {
             System.out.println(e);
-            person = null;
+            fetchedWords = null;
         }
-        return person;
+
+        // Optional code for printing database values to the console
+//        for(FetchedWords i : fetchedWords)
+//        {
+//        	System.out.println("Primary Key: " + i.PrimaryKey + " Word: " + i.Key + " Value: " + i.Value);
+//        }
+        
+        return fetchedWords;
 
     }
 
@@ -679,6 +660,68 @@ public class Main extends Application
 
     }
     
+    /**
+     * Method for inserting parsed words into the database
+     * @param sortedWords Map of String,Integer keys and values
+     */
+    public static void InsertWords(Map<String,Integer> sortedWords)
+    {
+    	// Print out the key and values from the hash map
+    	sortedWords.entrySet().forEach(entry->
+    	{
+            try 
+            {
+				ExecuteSQLStatement(entry);
+			}
+            catch (SQLException e) 
+            {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+    	});
+    	System.out.println("Words entered into SQL database, under the 'words' table");
+    }
+
+    /**
+     * Method for executing SQL statements 
+     * @param entry
+     * @throws SQLException
+     */
+	private static void ExecuteSQLStatement(Entry<String, Integer> entry) throws SQLException 
+	{
+		String sqlKey = null;
+		int sqlValue = 0;
+		if(entry.getKey().contains("'")) 
+		{
+			String singleQuoteWord=entry.getKey();  
+			String replacementString=singleQuoteWord.replaceAll("'","''");
+			sqlKey = replacementString;
+			//System.out.println(replacementString); 	
+		}
+		else 
+		{
+			sqlKey = entry.getKey();
+		}
+		sqlValue = entry.getValue();
+		Connection connection = null;
+		Statement statement = null;
+		connection = GetConnection();
+		//This setting allows SQL statements to be grouped instead of individual transactions
+		connection.setAutoCommit(false);
+		statement = connection.createStatement();
+		//System.out.printf("%-10s %-10s\n", entry.getKey(),entry.getValue());
+		//Construct SQL string to insert person object into table
+		String sql = "INSERT INTO words (WORD,FREQUENCY) " +
+		        "VALUES ("+
+		              "'" + sqlKey + "'," +
+		                  + sqlValue + ")";
+		statement.executeUpdate(sql);
+		statement.close();
+		//Commit the SQL statement group before closing
+		connection.commit();
+		connection.close();
+	}
+    
     //Method for inserting a person object into the database.
     public static Connection InsertPerson(Person person)
     {
@@ -689,7 +732,6 @@ public class Main extends Application
             connection = GetConnection();
             //This setting allows SQL statements to be grouped instead of individual transactions
             connection.setAutoCommit(false);
-
             statement = connection.createStatement();
             //Construct SQL string to insert person object into table
             String sql = "INSERT INTO PersonalData (FIRSTNAME,LASTNAME,AGE,CREDITCARD,SSN) " +
@@ -700,7 +742,6 @@ public class Main extends Application
                                 person.getCreditCard() + "," +
                                 person.getSsn() + " );";
             statement.executeUpdate(sql);
-
             statement.close();
             //Commit the SQL statement group before closing
             connection.commit();
@@ -713,7 +754,6 @@ public class Main extends Application
             System.out.println(e);
             connection = null;
         }
-
             return connection;
     }
 
@@ -727,17 +767,13 @@ public class Main extends Application
             connection = GetConnection();
             
             statement = connection.createStatement();
-            //Drop the table in the database before creating it to make sure nothing is overwritten or duplicated (
-			// This will blow up if the table 'PersonalData' doesn't already exist
-            statement.execute("DROP TABLE IF EXISTS PersonalData");
+            //Drop the table in the database before creating it to make sure nothing is overwritten or duplicated
+            statement.execute("DROP TABLE IF EXISTS words");
 			//Construct SQL string to initialize table with columns and expected value types
-            String sql = "CREATE TABLE PersonalData " +
+            String sql = "CREATE TABLE words " +
                          "(ID INTEGER PRIMARY KEY        AUTOINCREMENT, " +
-                         "FIRSTNAME           CHAR(30)   NOT NULL, " +
-                         "LASTNAME            CHAR(30)   NOT NULL, " +
-                         "AGE                 INT                , " +
-                         "CREDITCARD          BIGINT             , " +
-                         "SSN                 BIGINT             ) ";
+                         "WORD           CHAR(30)   NOT NULL, " +
+                         "FREQUENCY      INT                ) ";
             statement.executeUpdate(sql);
             statement.close();
             connection.close();
@@ -761,7 +797,7 @@ public class Main extends Application
         {
             Class.forName("org.sqlite.JDBC");
             connection = DriverManager.getConnection("jdbc:sqlite:/Users/NickS/Nicks Stuff/School stuff/Valencia/CEN 3024C 33719/Repos/Module10/Module10/JavaDatabaseTest/sqlite/db/MyDatabase.db");
-            System.out.println("Opened database successfully");
+            //System.out.println("Opened database successfully");
         }
         catch (Exception e)
         {
