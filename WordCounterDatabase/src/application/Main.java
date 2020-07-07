@@ -165,14 +165,23 @@ public class Main extends Application
 
 	    // Create Series object for data to be loaded into
 	    XYChart.Series algorithmData = new XYChart.Series();
-	    int i = 0;
-	    sortedWords.entrySet().forEach(entry->
+	    
+//	    sortedWords.entrySet().forEach(entry->
+//	    {
+//	    	if (entry.getValue() > 7) 
+//	    	{
+//		    	algorithmData.getData().add(new XYChart.Data(entry.getKey(), entry.getValue()));
+//	    	}
+//	    });
+	    // Add data to the series from the ArrayList of FetchedWords. This ArrayList was populated from the database
+	    for(FetchedWords w : fetchedWords)
 	    {
-	    	if (entry.getValue() > 7) 
+	    	// Coincidentally, grabbing values above 7 leaves us with the top 20 most frequent words
+	    	if (w.Value > 7)
 	    	{
-		    	algorithmData.getData().add(new XYChart.Data(entry.getKey(), entry.getValue()));
+		    	algorithmData.getData().add(new XYChart.Data(w.Key,w.Value));
 	    	}
-	    });
+	    }
 
 	    // Add data to chart
 	    barChart.getData().add(algorithmData);
@@ -246,10 +255,16 @@ public class Main extends Application
 		System.out.printf("%-10s %-10s\n", "----", "---------------------");
 		    
 		// Print out the key and values from the hash map
-		sorted.entrySet().forEach(entry->
+//		sorted.entrySet().forEach(entry->
+//		{
+//			System.out.printf("%-10s %-10s\n", entry.getKey(),entry.getValue());
+//		});
+		// Print out the key and value using the new ArrayList that took data from the database
+		for(FetchedWords i : fetchedWords)
 		{
-			System.out.printf("%-10s %-10s\n", entry.getKey(),entry.getValue());
-		});
+			System.out.printf("%-10s %-10s\n", i.Key, i.Value );
+		}
+		
 	}
 	
 	/**
