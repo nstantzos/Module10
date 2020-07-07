@@ -186,6 +186,12 @@ public class Main extends Application
 	}
 	
 
+	/**
+	 * Main method of the WordCounterDatabase program.
+	 * @param args Not used
+	 * @throws MalformedURLException
+	 * @throws IOException
+	 */
 	public static void main(String[] args) throws MalformedURLException, IOException 
 	{
         //Create table within database
@@ -200,7 +206,7 @@ public class Main extends Application
         // Call method to insert words into the database
         InsertWords(sortedWords);
         
-        //Loop through all people in the person array list FindAllPeople method
+        // Call method to retrieve the words that were previously entered into the database
         fetchedWords = RetrieveWordsFromDatabase();
 	    
 	    // Print the sorted dictionary contents to the console window
@@ -495,11 +501,7 @@ public class Main extends Application
 			}
 			return counterMap;
 	}
-	
-	// Method to search user-defined word
-	// Method to search the map for the user-entered word. This method returns a bool flag, which
-	// indicates if the entered word was found. If yes, it updates a label in the GUI with the word
-	// frequency. 
+	 
 	/**
 	 * Method to search the map for the user-entered word. This method returns a bool flag, which
 	 * indicates if the entered word was found. If yes, it updates a label in the GUI with the word
@@ -540,36 +542,6 @@ public class Main extends Application
 		}
 	}
 	
-//	//Method for deleting person from the table based on the last name
-//    public static Connection DeletePerson(String firstName, String lastName)
-//    {
-//    	//Initialize connection and statement to null
-//        Connection connection = null;
-//        Statement statement = null;
-//
-//        try 
-//        {
-//            connection = GetConnection();
-//            connection.setAutoCommit(false);
-//
-//            //Create and execute SQL statement
-//            statement = connection.createStatement();
-//            //SQL statement to delete specific rows of people based on last name
-//            String sql = "DELETE from PersonalData where FIRSTNAME='" + firstName + "' AND LASTNAME='" + lastName + "';";
-//            statement.executeUpdate(sql);
-//            connection.commit();
-//            connection.close();
-//
-//            System.out.println(firstName + " " + lastName + " was deleted :(");
-//        } 
-//        catch ( Exception e ) 
-//        {
-//            System.out.println(e);
-//            //System.out.println("I entered the delete person catch block");
-//            connection = null;
-//        }
-//        return connection;
-//    }
 
 	/**
 	 * Method that fetches words from the database and stores them in an ArrayList of type FetchedWords
@@ -599,7 +571,6 @@ public class Main extends Application
             	fetchedWords.add(new FetchedWords(words.getInt("ID"), words.getString("WORD"), words.getInt("FREQUENCY")));
             }
 
-            System.out.println("SIZE IS: " + fetchedWords.size());
             words.close();
             statement.close();
             connection.close();
@@ -619,46 +590,7 @@ public class Main extends Application
         return fetchedWords;
 
     }
-
-    //Method to select and output a person object from a row contained in the database
-    public static Person SelectPerson(int id)
-    {
-        Connection connection = null;
-        Statement statement = null;
-        Person person = new Person();
-        try 
-        {
-            connection = GetConnection();
-            connection.setAutoCommit(false);
-
-            statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery("SELECT * FROM PersonalData where ID=" + id + ";");
-            //While loop checks the result set for final row conditions: if the cursor is after the final row, the loop stops
-            //Retrieve data from database and populate person object with retrieved data
-            while ( rs.next() ) 
-            {
-            	//Retrieve data from table to use to set properties of person object
-                person.setFirstName(rs.getString("firstname"));
-                person.setLastName(rs.getString("lastname"));
-                person.setAge(rs.getInt("age"));
-                person.setCreditCard(rs.getInt("creditcard"));
-                person.setSsn(rs.getInt("ssn"));
-            }
-            rs.close();
-            statement.close();
-            connection.close();
-
-            System.out.println("(Select Person " + id + ") done successfully");
-        } 
-        catch ( Exception e ) 
-        {
-            System.out.println(e);
-            person = null;
-        }
-        //Return person object
-        return person;
-
-    }
+    
     
     /**
      * Method for inserting parsed words into the database
@@ -684,33 +616,43 @@ public class Main extends Application
 
     /**
      * Method for executing SQL statements 
-     * @param entry
+     * @param entry Map containing words and frequencies to be entered via SQL into database
      * @throws SQLException
      */
 	private static void ExecuteSQLStatement(Entry<String, Integer> entry) throws SQLException 
 	{
+		// Define strings and ints to retrieve data from SQL database
 		String sqlKey = null;
 		int sqlValue = 0;
+		
+		// Check word for apostrophes. Single apostrophes must be doubled, as SQL does not accept single apostrophes
 		if(entry.getKey().contains("'")) 
 		{
 			String singleQuoteWord=entry.getKey();  
+			// Replace single quote with two single quotes to tell SQL that we want a single quote character in the string
 			String replacementString=singleQuoteWord.replaceAll("'","''");
 			sqlKey = replacementString;
-			//System.out.println(replacementString); 	
 		}
 		else 
 		{
 			sqlKey = entry.getKey();
 		}
+		
+		// Set the frequency value
 		sqlValue = entry.getValue();
 		Connection connection = null;
 		Statement statement = null;
 		connection = GetConnection();
+		
 		//This setting allows SQL statements to be grouped instead of individual transactions
 		connection.setAutoCommit(false);
+		
 		statement = connection.createStatement();
+		
+		// Old code for printing database data to the console
 		//System.out.printf("%-10s %-10s\n", entry.getKey(),entry.getValue());
-		//Construct SQL string to insert person object into table
+		
+		//Construct SQL string to insert word data into table
 		String sql = "INSERT INTO words (WORD,FREQUENCY) " +
 		        "VALUES ("+
 		              "'" + sqlKey + "'," +
@@ -721,43 +663,11 @@ public class Main extends Application
 		connection.commit();
 		connection.close();
 	}
-    
-    //Method for inserting a person object into the database.
-    public static Connection InsertPerson(Person person)
-    {
-        Connection connection = null;
-        Statement statement = null;
-        try 
-        {
-            connection = GetConnection();
-            //This setting allows SQL statements to be grouped instead of individual transactions
-            connection.setAutoCommit(false);
-            statement = connection.createStatement();
-            //Construct SQL string to insert person object into table
-            String sql = "INSERT INTO PersonalData (FIRSTNAME,LASTNAME,AGE,CREDITCARD,SSN) " +
-                    "VALUES ("+
-                          "'" + person.getFirstName() + "'," +
-                          "'" + person.getLastName() + "'," +
-                                person.getAge() + "," +
-                                person.getCreditCard() + "," +
-                                person.getSsn() + " );";
-            statement.executeUpdate(sql);
-            statement.close();
-            //Commit the SQL statement group before closing
-            connection.commit();
-            connection.close();
 
-            System.out.println("(Insert Person " + person.getFirstName() + " " + person.getLastName() + ") done successfully");
-        } 
-        catch ( Exception e ) 
-        {
-            System.out.println(e);
-            connection = null;
-        }
-            return connection;
-    }
-
-    //Method to create a table within the database
+	/**
+	 * Method to create a table within the database
+	 * @return Returns a connection object
+	 */
     public static Connection CreateTable()
     {
         Connection connection = null;
@@ -789,14 +699,17 @@ public class Main extends Application
         return connection;
     }
 
-    //Method to open a connection to the database. 
+    /**
+     * Method to open a connection to the locally hosted database. This will need to be changed before it can be run on a different machine
+     * @return
+     */
     public static Connection GetConnection()
     {
         Connection connection = null;
         try
         {
             Class.forName("org.sqlite.JDBC");
-            connection = DriverManager.getConnection("jdbc:sqlite:/Users/NickS/Nicks Stuff/School stuff/Valencia/CEN 3024C 33719/Repos/Module10/Module10/JavaDatabaseTest/sqlite/db/MyDatabase.db");
+            connection = DriverManager.getConnection("jdbc:sqlite:/Users/NickS/Nicks Stuff/School stuff/Valencia/CEN 3024C 33719/Repos/Module10/Module10/WordCounterDatabase/sqlite/db/MyDatabase.db");
             //System.out.println("Opened database successfully");
         }
         catch (Exception e)
