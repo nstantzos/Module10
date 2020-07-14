@@ -4,8 +4,13 @@ import static java.util.stream.Collectors.toMap;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
+import java.net.Socket;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -46,8 +51,14 @@ import javafx.scene.layout.VBox;
  * word within "The Raven". The user can also click a button that will display 
  * a bar chart with the top 20 most frequently occurring words. The full 
  * frequency results are also displayed in the console window.
+ * 
+ * 5.1.0 Update
+ * Under the guise that the process of sorting the <String, Integer> map is
+ * very resource demanding, a feature was added that will send the word map
+ * to a representative "server" to be sorted. The map is then returned to the 
+ * client for further processing and entry into the SQL database.
  * @author NickS
- * @version 5.0.0
+ * @version 5.1.0
  *
  */
 public class Main extends Application 
@@ -202,7 +213,7 @@ public class Main extends Application
 	 * @throws IOException
 	 */
 	public static void main(String[] args) throws MalformedURLException, IOException 
-	{
+	{		
         //Create table within database
         CreateTable();
         
@@ -227,21 +238,35 @@ public class Main extends Application
 	
 	/**
 	 * Method to handle sorting within the dictionary (map), such that the resulting map is sorted
-	 * from highest to lowest frequency words.
+	 * from highest to lowest frequency words. This method sends a map to the "server" for processing.
 	 * @param counterMap The map to be sorted. Should contain strings as keys and integers as values.
 	 * @return Returns a sorted map (string, integer) in decreasing value order.
 	 */
 	public static Map<String, Integer> SortDictionary(Map<String, Integer> counterMap) 
 	{
-		// Sort the map in decreasing order of value
-		Map<String, Integer>sorted = counterMap
-		        .entrySet()
-		        .stream()
-		        .sorted(Collections.reverseOrder(Map.Entry.comparingByValue()))
-		        .collect(
-		            toMap(Map.Entry::getKey, Map.Entry::getValue, (e1, e2) -> e2,
-		                LinkedHashMap::new));
-		return sorted;
+		// This chunk of code will send a hash map to the "server"
+		try 
+		{
+			Socket t = new Socket("localhost",2112);
+			System.out.println("Initialized socket on the client side");
+			// Map to send
+		    final OutputStream yourOutputStream = t.getOutputStream(); // OutputStream where to send the map in case of network you get it from the Socket instance.
+		    final ObjectOutputStream mapOutputStream = new ObjectOutputStream(yourOutputStream);
+		    mapOutputStream.writeObject(counterMap);
+		    
+		    // Receive the map back from the server, from a socket instance
+		    final InputStream yourInputStream = t.getInputStream();
+		    final ObjectInputStream mapInputStream = new ObjectInputStream(yourInputStream);
+		    final Map<String, Integer> sorted = (Map) mapInputStream.readObject();
+		    t.close();
+		    
+		    return sorted;
+		} 
+		catch (Exception e)
+		{
+			System.out.println("Error in connecting to server. Make sure to run the WordCounterServer.jar file before this .jar.");
+			return counterMap;
+		}
 	}
 	
 	/**
@@ -578,13 +603,17 @@ public class Main extends Application
             
             //Query all rows of data from words table
             ResultSet words = statement.executeQuery("SELECT * FROM words");
-            System.out.println("Result set size is: " + words.getFetchSize());
+            int counter = 0;
             
             while ( words.next())
             {
             	// Add each word to the words array list
             	fetchedWords.add(new FetchedWords(words.getInt("ID"), words.getString("WORD"), words.getInt("FREQUENCY")));
+            	counter++;
             }
+            
+            // Print out word totals
+            System.out.println("There are a total of " + counter + " unique words in 'The Raven', listed below.");
 
             words.close();
             statement.close();
