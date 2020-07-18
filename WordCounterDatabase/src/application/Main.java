@@ -53,7 +53,7 @@ import javafx.scene.layout.VBox;
  * frequency results are also displayed in the console window.
  * 
  * 5.1.0 Update
- * Under the guise that the process of sorting the <String, Integer> map is
+ * Under the guise that the process of sorting the String, Integer map is
  * very resource demanding, a feature was added that will send the word map
  * to a representative "server" to be sorted. The map is then returned to the 
  * client for further processing and entry into the SQL database.

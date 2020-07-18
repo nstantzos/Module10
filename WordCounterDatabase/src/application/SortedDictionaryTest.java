@@ -45,7 +45,7 @@ class SortedDictionaryTest
 		// If the result is not equal to dog, then the test fails (this means that the map was
 		// not sorted properly)
 		assertEquals("Dog", key);
-		assertEquals("4", value);
+		assertEquals(4, value);
 	}
 
 }
