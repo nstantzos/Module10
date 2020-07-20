@@ -15,19 +15,20 @@ import java.util.Map;
 public class WordCounterServer 
 {
 
+	/**
+	 * Method to initiate server side connection with the word counter client.
+	 * @param args
+	 */
 	public static void main(String[] args) 
 	{
 		try 
 		{
 			ServerSocket server2 = new ServerSocket(2112);
-			//System.out.println("I initialized the server socket");
 			Socket fromClient2 = server2.accept();
-			//System.out.println("I accepted the socket connection");
 			// Receive the map from the client
 		    final InputStream yourInputStream = fromClient2.getInputStream(); // InputStream from where to receive the map, in case of network you get it from the Socket instance.
 		    final ObjectInputStream mapInputStream = new ObjectInputStream(yourInputStream);
 		    final Map<String, Integer> counterMap = (Map) mapInputStream.readObject();
-		    //System.out.println("I collected the map");
 			// Sort the map in decreasing order of value
 			Map<String, Integer>sorted = counterMap
 			        .entrySet()
